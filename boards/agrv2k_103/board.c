@@ -89,6 +89,7 @@ __attribute__((weak)) void board_init(void)
   PERIPHERAL_ENABLE_ALL(SPI, 1);
   SYS_EnableAPBClock(APB_MASK_SPI1);
   SPI_Init(SPI1, SPI_CTRL_SCLK_DIV2);
+  INT_EnableIRQ(SPIx_IRQn(1), SPI_PRIORITY);
 
   // Initialize LCD control GPIO
   SYS_EnableAPBClock(APB_MASK_GPIO4);

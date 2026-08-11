@@ -22,6 +22,8 @@ extern "C" {
 #define LED_GPIO_MASK APB_MASK_GPIO0
 #define LED_GPIO_BIT  GPIO_BIT0
 
+#define SPI_PRIORITY  5
+
 // Board initialization functions
 SYS_HSE_BypassTypeDef board_hse_source(void);
 RTC_ClkSourceTypeDef  board_rtc_source(void);

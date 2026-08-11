@@ -4,6 +4,7 @@
 #include "dmac.h"
 #include "gpio.h"
 #include <string.h>
+#include <stdint.h>
 
 static void delay_ms_local(uint32_t ms)
 {
@@ -158,11 +159,10 @@ void LCD_Init(void)
 
 void LCD_Fill(uint16_t xsta, uint16_t ysta, uint16_t xend, uint16_t yend, uint16_t color)
 {
-    LCD_SetAddress(xsta, ysta, xend - 1, yend - 1);
+    LCD_StreamOpen(xsta, ysta, xend - 1, yend - 1);
     uint32_t npix = ((uint32_t)(xend - xsta)) * ((uint32_t)(yend - ysta));
-    for (uint32_t i = 0; i < npix; i++) {
-        LCD_WriteData16(color);
-    }
+    LCD_StreamFillSolid(npix, color);
+    LCD_StreamClose();
 }
 
 void LCD_DrawPoint(uint16_t x, uint16_t y, uint16_t color)
@@ -171,7 +171,19 @@ void LCD_DrawPoint(uint16_t x, uint16_t y, uint16_t color)
     LCD_WriteData16(color);
 }
 
-// Streaming functions (simplified without DMA for now)
+// Streaming functions with DMA
+static uint8_t lcd_stream_buf[4096] __attribute__((aligned(4)));
+static volatile uint32_t lcd_dma_active = 0;
+
+static void lcd_dma_isr(void)
+{
+    SPI_ClearInt(SPI1);
+    DMAC_DisableChannel(DMAC_CHANNEL0);
+    lcd_dma_active = 0;
+}
+
+void SPI1_isr(void) __attribute__((weak, alias("lcd_dma_isr")));
+
 void LCD_StreamOpen(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
     LCD_DC_LOW();
@@ -195,19 +207,59 @@ void LCD_StreamOpen(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 
 void LCD_StreamClose(void)
 {
+    while (lcd_dma_active);
     LCD_CS_HIGH();
 }
 
 void LCD_StreamSend(const uint8_t *bytes, uint32_t nbytes)
 {
-    for (uint32_t i = 0; i < nbytes; i++) {
-        spi_send_byte(bytes[i]);
+    while (lcd_dma_active);
+
+    if (nbytes <= 4) {
+        for (uint32_t i = 0; i < nbytes; i++) {
+            spi_send_byte(bytes[i]);
+        }
+        return;
     }
+
+    memcpy(lcd_stream_buf, bytes, nbytes);
+
+    DMAC_DisableSyncRequest(SPI_TX_DMA_REQ(SPI1));
+    DMAC_DisableSyncRequest(SPI_RX_DMA_REQ(SPI1));
+
+    uint32_t txData = 0;
+    txData = lcd_stream_buf[0] + (lcd_stream_buf[1] << 8) + (lcd_stream_buf[2] << 16) + (lcd_stream_buf[3] << 24);
+
+    SPI_SetPhaseCtrl(SPI1, SPI_PHASE_0, SPI_PHASE_ACTION_TX, SPI_PHASE_MODE_SINGLE, 4);
+    SPI_SetPhaseData(SPI1, SPI_PHASE_0, txData);
+
+    SPI_SetPhaseCtrl(SPI1, SPI_PHASE_1, SPI_PHASE_ACTION_TX, SPI_PHASE_MODE_SINGLE, nbytes - 4);
+    DMAC_Config(DMAC_CHANNEL0, (uint32_t)lcd_stream_buf + 4, (uint32_t)&SPI1->PHASE_DATA[SPI_PHASE_1],
+                DMAC_ADDR_INCR_ON, DMAC_ADDR_INCR_OFF, DMAC_WIDTH_32_BIT, DMAC_WIDTH_32_BIT,
+                DMAC_BURST_1, DMAC_BURST_1, 0, DMAC_MEM_TO_PERIPHERAL_PERIPHERAL_CTRL,
+                0, SPI_TX_DMA_REQ(SPI1));
+
+    lcd_dma_active = 1;
+    SPI_Start(SPI1, SPI_CTRL_PHASE_CNT2, SPI_CTRL_DMA_ON, SPI_INTERRUPT_ON);
 }
 
 void LCD_StreamFillSolid(uint32_t npix, uint16_t color)
 {
-    for (uint32_t i = 0; i < npix; i++) {
-        spi_send_word(color);
+    uint32_t nbytes = npix * 2;
+    uint32_t buf_size = sizeof(lcd_stream_buf);
+
+    uint16_t *pbuf = (uint16_t *)(uintptr_t)lcd_stream_buf;
+    uint32_t words_per_buf = buf_size / 2;
+
+    while (nbytes > 0) {
+        uint32_t to_fill = nbytes > buf_size ? buf_size : nbytes;
+        uint32_t nwords = to_fill / 2;
+
+        for (uint32_t i = 0; i < nwords; i++) {
+            pbuf[i] = color;
+        }
+
+        LCD_StreamSend(lcd_stream_buf, to_fill);
+        nbytes -= to_fill;
     }
 }
