@@ -22,10 +22,10 @@
 #define LCD_YELLOW        0xFFE0
 
 // LCD control pins - from board.h
-#define LCD_RES_HIGH()    GPIO_SetHigh(GPIO4, GPIO_BIT6)
-#define LCD_RES_LOW()     GPIO_SetLow(GPIO4, GPIO_BIT6)
-#define LCD_DC_HIGH()     GPIO_SetHigh(GPIO4, GPIO_BIT7)
-#define LCD_DC_LOW()      GPIO_SetLow(GPIO4, GPIO_BIT7)
+#define LCD_RES_HIGH()    GPIO_SetHigh(GPIO4, GPIO_BIT5)
+#define LCD_RES_LOW()     GPIO_SetLow(GPIO4, GPIO_BIT5)
+#define LCD_DC_HIGH()     GPIO_SetHigh(GPIO4, GPIO_BIT6)
+#define LCD_DC_LOW()      GPIO_SetLow(GPIO4, GPIO_BIT6)
 #define LCD_CS_HIGH()     GPIO_SetHigh(GPIO5, GPIO_BIT0)
 #define LCD_CS_LOW()      GPIO_SetLow(GPIO5, GPIO_BIT0)
 #define LCD_BLK_HIGH()    GPIO_SetHigh(GPIO5, GPIO_BIT1)

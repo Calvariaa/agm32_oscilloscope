@@ -88,12 +88,12 @@ __attribute__((weak)) void board_init(void)
   // Initialize SPI1 for LCD
   PERIPHERAL_ENABLE_ALL(SPI, 1);
   SYS_EnableAPBClock(APB_MASK_SPI1);
-  SPI_Init(SPI1, SPI_CTRL_SCLK_DIV16);  // 200MHz/16 = 12.5MHz, safe for init
+  SPI_Init(SPI1, SPI_CTRL_SCLK_DIV2);
 
   // Initialize LCD control GPIO
   SYS_EnableAPBClock(APB_MASK_GPIO4);
-  GPIO_SetOutput(GPIO4, GPIO_BIT6 | GPIO_BIT7);  // RES, DC
-  GPIO_SetHigh(GPIO4, GPIO_BIT6 | GPIO_BIT7);
+  GPIO_SetOutput(GPIO4, GPIO_BIT5 | GPIO_BIT6);  // RES, DC
+  GPIO_SetHigh(GPIO4, GPIO_BIT5 | GPIO_BIT6);
 
   SYS_EnableAPBClock(APB_MASK_GPIO5);
   GPIO_SetOutput(GPIO5, GPIO_BIT0 | GPIO_BIT1);  // CS, BLK

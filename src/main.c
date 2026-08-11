@@ -17,14 +17,11 @@ int main(void)
   LCD_Init();
 
   // Test display - fill screen with colors
-  LCD_Fill(0, 0, LCD_W, LCD_H, LCD_RED);
-  delay_ms(1000);
-  LCD_Fill(0, 0, LCD_W, LCD_H, LCD_GREEN);
-  delay_ms(1000);
-  LCD_Fill(0, 0, LCD_W, LCD_H, LCD_BLUE);
-
   while (1) {
+    LCD_Fill(0, 0, LCD_W, LCD_H, LCD_RED);
+    LCD_Fill(0, 0, LCD_W, LCD_H, LCD_GREEN);
+    LCD_Fill(0, 0, LCD_W, LCD_H, LCD_BLUE);
+
     GPIO_Toggle(LED_GPIO, LED_GPIO_BIT);
-    delay_ms(500);
   }
 }
