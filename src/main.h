@@ -1,7 +1,7 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 
-#include "../boards/agrv2k_103/board.h"
+#include "../boards/agrv2k_303/board.h"
 
 #ifndef MSG_UART_ID
 #define MSG_UART_ID 1
