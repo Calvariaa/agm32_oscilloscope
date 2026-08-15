@@ -59,8 +59,16 @@ void ips200_set_dir     (ips200_dir_enum dir);
 void ips200_set_font    (ips200_font_size_enum font);
 void ips200_set_color   (uint16_t pen, uint16_t bgcolor);
 
-void ips200_draw_point  (uint16_t x, uint16_t y, uint16_t color);
+void ips200_fill_rect    (uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+void ips200_draw_fast_vline (uint16_t x, uint16_t y, uint16_t h, uint16_t color);
+void ips200_draw_fast_hline (uint16_t x, uint16_t y, uint16_t w, uint16_t color);
+void ips200_draw_point   (uint16_t x, uint16_t y, uint16_t color);
 void ips200_draw_line   (uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end, uint16_t color);
+void ips200_draw_rect    (uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
+void ips200_draw_circle  (uint16_t x0, uint16_t y0, uint16_t r, uint16_t color);
+void ips200_fill_circle  (uint16_t x0, uint16_t y0, uint16_t r, uint16_t color);
+void ips200_draw_triangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color);
+void ips200_fill_triangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color);
 
 void ips200_show_char   (uint16_t x, uint16_t y, char dat);
 void ips200_show_string (uint16_t x, uint16_t y, const char dat[]);

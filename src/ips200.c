@@ -235,6 +235,40 @@ void ips200_draw_point(uint16_t x, uint16_t y, uint16_t color)
     ips200_write_16bit_data(color);
 }
 
+void ips200_fill_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
+{
+    if (x >= ips200_width_max || y >= ips200_height_max) return;
+    if (x + w > ips200_width_max)  w = ips200_width_max - x;
+    if (y + h > ips200_height_max) h = ips200_height_max - y;
+    ips200_set_region(x, y, x + w - 1, y + h - 1);
+    uint32_t nbytes = (uint32_t)w * h * 2;
+    uint32_t buf_size = sizeof(ips_dma_buf);
+    uint8_t *dst = (uint8_t *)ips_dma_buf;
+    uint8_t hi = (uint8_t)(color >> 8), lo = (uint8_t)(color & 0xFF);
+    uint32_t nw = buf_size / 2;
+    for (uint32_t i = 0; i < nw; i++) { dst[i * 2] = hi; dst[i * 2 + 1] = lo; }
+    while (nbytes > 0) {
+        uint32_t chunk = nbytes > buf_size ? buf_size : nbytes;
+        while (ips_dma_active);
+        ips_stream_send((const uint8_t *)ips_dma_buf, chunk);
+        nbytes -= chunk;
+    }
+    while (ips_dma_active);
+}
+
+void ips200_draw_fast_vline(uint16_t x, uint16_t y, uint16_t h, uint16_t color)
+{
+    if (x >= ips200_width_max || y >= ips200_height_max) return;
+    if (y + h > ips200_height_max) h = ips200_height_max - y;
+    ips200_fill_rect(x, y, 1, h, color);
+}
+
+void ips200_draw_fast_hline(uint16_t x, uint16_t y, uint16_t w, uint16_t color)
+{
+    if (x >= ips200_width_max || y >= ips200_height_max) return;
+    if (x + w > ips200_width_max) w = ips200_width_max - x;
+    ips200_fill_rect(x, y, w, 1, color);
+}
 void ips200_draw_line(uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end, uint16_t color)
 {
     int16_t x_dir = (x_start < x_end) ? 1 : -1;
@@ -270,6 +304,82 @@ void ips200_draw_line(uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16
         }
         ips200_draw_point(x_start, y_start, color);
     } while (0);
+}
+
+
+void ips200_draw_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
+{
+    ips200_draw_fast_hline(x,         y,         w, color);
+    ips200_draw_fast_hline(x,         y + h - 1, w, color);
+    ips200_draw_fast_vline(x,         y,         h, color);
+    ips200_draw_fast_vline(x + w - 1, y,         h, color);
+}
+
+void ips200_draw_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color)
+{
+    int16_t f = 1 - (int16_t)r;
+    int16_t ddx = 1, ddy = -2 * (int16_t)r;
+    int16_t x = 0, y = (int16_t)r;
+    ips200_draw_point(x0,     y0 + r, color);
+    ips200_draw_point(x0,     y0 - r, color);
+    ips200_draw_point(x0 + r, y0,     color);
+    ips200_draw_point(x0 - r, y0,     color);
+    while (x < y) {
+        if (f >= 0) { y--; ddy += 2; f += ddy; }
+        x++; ddx += 2; f += ddx;
+        ips200_draw_point(x0 + x, y0 + y, color);
+        ips200_draw_point(x0 - x, y0 + y, color);
+        ips200_draw_point(x0 + x, y0 - y, color);
+        ips200_draw_point(x0 - x, y0 - y, color);
+        ips200_draw_point(x0 + y, y0 + x, color);
+        ips200_draw_point(x0 - y, y0 + x, color);
+        ips200_draw_point(x0 + y, y0 - x, color);
+        ips200_draw_point(x0 - y, y0 - x, color);
+    }
+}
+
+void ips200_fill_circle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color)
+{
+    ips200_draw_fast_vline(x0, y0 - r, 2 * r + 1, color);
+    int16_t f = 1 - (int16_t)r;
+    int16_t ddx = 1, ddy = -2 * (int16_t)r;
+    int16_t x = 0, y = (int16_t)r;
+    while (x < y) {
+        if (f >= 0) { y--; ddy += 2; f += ddy; }
+        x++; ddx += 2; f += ddx;
+        ips200_draw_fast_vline(x0 + x, y0 - y, 2 * y + 1, color);
+        ips200_draw_fast_vline(x0 - x, y0 - y, 2 * y + 1, color);
+        ips200_draw_fast_vline(x0 + y, y0 - x, 2 * x + 1, color);
+        ips200_draw_fast_vline(x0 - y, y0 - x, 2 * x + 1, color);
+    }
+}
+
+void ips200_draw_triangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color)
+{
+    ips200_draw_line(x1, y1, x2, y2, color);
+    ips200_draw_line(x2, y2, x3, y3, color);
+    ips200_draw_line(x3, y3, x1, y1, color);
+}
+
+void ips200_fill_triangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t x3, uint16_t y3, uint16_t color)
+{
+    int16_t deltax, deltay, x, y, xinc1, xinc2, yinc1, yinc2, den, num, numadd, numpixels, curpixel;
+    deltax = x2 > x1 ? x2 - x1 : x1 - x2;
+    deltay = y2 > y1 ? y2 - y1 : y1 - y2;
+    x = x1; y = y1;
+    xinc1 = xinc2 = (x2 >= x1) ? 1 : -1;
+    yinc1 = yinc2 = (y2 >= y1) ? 1 : -1;
+    if (deltax >= deltay) {
+        xinc1 = 0; yinc2 = 0; den = deltax; num = deltax / 2; numadd = deltay; numpixels = deltax;
+    } else {
+        xinc2 = 0; yinc1 = 0; den = deltay; num = deltay / 2; numadd = deltax; numpixels = deltay;
+    }
+    for (curpixel = 0; curpixel <= numpixels; curpixel++) {
+        ips200_draw_line(x, y, x3, y3, color);
+        num += numadd;
+        if (num >= den) { num -= den; x += xinc1; y += yinc1; }
+        x += xinc2; y += yinc2;
+    }
 }
 
 // ------------------------------------------------------------------ text
