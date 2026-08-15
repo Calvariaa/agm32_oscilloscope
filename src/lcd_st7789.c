@@ -182,7 +182,7 @@ static void lcd_dma_isr(void)
     lcd_dma_active = 0;
 }
 
-void SPI1_isr(void) __attribute__((weak, alias("lcd_dma_isr")));
+// SPI1_isr is defined in ips200.c
 
 void LCD_StreamOpen(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
