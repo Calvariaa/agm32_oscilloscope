@@ -705,3 +705,15 @@ void ips200_init(void)
 
     ips200_clear();
 }
+
+void ips200_update_wave(uint16_t *prev_y, const uint16_t *new_y, uint16_t len,
+                        uint16_t erase_color, uint16_t draw_color)
+{
+    for (uint16_t x = 0; x < len; x++) {
+        if (new_y[x] != prev_y[x]) {
+            ips200_draw_point(x, prev_y[x], erase_color);
+            ips200_draw_point(x, new_y[x],  draw_color);
+            prev_y[x] = new_y[x];
+        }
+    }
+}
